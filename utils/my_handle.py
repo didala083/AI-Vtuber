@@ -1801,7 +1801,7 @@ class My_handle(metaclass=SingletonMeta):
 
                             if chat_type in ["chatgpt", "zhipu", "tongyixingchen", "my_wenxinworkshop", "volcengine"]:
                                 # 智谱 智能体情况特殊处理
-                                if chat_type == "zhipu" and My_handle.config.get("zhipu", "model"):
+                                if chat_type == "zhipu" and My_handle.config.get("zhipu", "model") == "智能体":
                                     # 记录 并追加切出的文本长度
                                     cut_len += len(tmp_content)
                                 else:
@@ -1885,7 +1885,7 @@ class My_handle(metaclass=SingletonMeta):
                     if chat_type in ["chatgpt", "zhipu"]:
                         # logger.info(chunk)
                         # 智谱 智能体情况特殊处理
-                        if chat_type == "zhipu" and My_handle.config.get("zhipu", "model"):
+                        if chat_type == "zhipu" and My_handle.config.get("zhipu", "model") == "智能体":
                             decoded_line = chunk.decode('utf-8')
                             if decoded_line.startswith('data:'):
                                 data_dict = json.loads(decoded_line[5:])
@@ -2902,9 +2902,9 @@ class My_handle(metaclass=SingletonMeta):
 
     """
 
-    # 弹幕处理
+    # 弹幕处理 直播间的弹幕消息会统一到此函数进行处理
     def comment_handle(self, data):
-        """弹幕处理
+        """弹幕处理 直播间的弹幕消息会统一到此函数进行处理
 
         Args:
             data (dict): 包含用户名,弹幕内容
@@ -2927,7 +2927,16 @@ class My_handle(metaclass=SingletonMeta):
             # 黑名单过滤
             if self.blacklist_handle(data):
                 return None
+            
+            # 弹幕数据经过基本初步筛选后，通过 洛曦直播弹幕助手，可以进行转发。
+            # 洛曦 直播弹幕助手
+            if My_handle.config.get("luoxi_project", "Live_Comment_Assistant", "enable") and \
+                "comment" in My_handle.config.get("luoxi_project", "Live_Comment_Assistant", "type") and \
+                "消息产生时" in My_handle.config.get("luoxi_project", "Live_Comment_Assistant", "trigger_position"):
+                asyncio.run(send_msg_to_live_comment_assistant(My_handle.config.get("luoxi_project", "Live_Comment_Assistant"), content))
 
+
+            # 返回给webui的聊天记录
             if My_handle.config.get("talk", "show_chat_log"):
                 if "ori_username" not in data:
                     data["ori_username"] = data["username"]
